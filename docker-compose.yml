@@ -1,0 +1,82 @@
+x-rails-env: &rails-env
+  DATABASE_URL: postgres://postgres:postgres@db:5432
+  REDIS_URL: redis://redis:6379/0
+  PMS_BASE_URL: http://mock:4000
+  LOCK_BASE_URL: http://mock:4000
+  MOCK_API_KEY: dev-mock-key
+  STAFF_API_TOKEN: demo-staff-token
+  CORS_ORIGINS: http://localhost:5173
+
+services:
+  db:
+    image: postgres:16-bookworm
+    environment:
+      POSTGRES_PASSWORD: postgres
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "postgres"]
+      interval: 2s
+      retries: 20
+
+  redis:
+    image: redis:7-alpine
+
+  # Fake PMS + smart-lock vendor with failure injection (see mock-services/server.js)
+  mock:
+    image: node:24.8-alpine
+    working_dir: /app
+    command: node server.js
+    environment:
+      FAILURE_RATE: "0.3"
+      MOCK_API_KEY: dev-mock-key
+    volumes:
+      - ./mock-services:/app
+    ports:
+      - "4000:4000"
+
+  api:
+    image: quickcheck-api
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.dev
+    command: bash -c "rm -f tmp/pids/server.pid && bin/rails db:prepare db:seed && bin/rails server -b 0.0.0.0"
+    environment: *rails-env
+    volumes:
+      - ./backend:/app
+    ports:
+      - "3000:3000"
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+      mock:
+        condition: service_started
+
+  worker:
+    image: quickcheck-api
+    command: bundle exec sidekiq -C config/sidekiq.yml
+    environment: *rails-env
+    volumes:
+      - ./backend:/app
+    depends_on:
+      - api
+
+  web:
+    image: node:24.8-alpine
+    working_dir: /app
+    command: sh -c "npm install && npm run dev -- --host 0.0.0.0"
+    environment:
+      VITE_API_PROXY_TARGET: http://api:3000
+    volumes:
+      - ./frontend:/app
+      - web_node_modules:/app/node_modules
+    ports:
+      - "5173:5173"
+    depends_on:
+      - api
+
+volumes:
+  pgdata:
+  web_node_modules:

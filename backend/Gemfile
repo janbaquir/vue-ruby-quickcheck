@@ -1,0 +1,24 @@
+source "https://rubygems.org"
+
+gem "rails", "~> 8.0.5"
+gem "pg", "~> 1.1"
+gem "puma", ">= 5.0"
+gem "bootsnap", require: false
+gem "tzinfo-data", platforms: %i[ windows jruby ]
+
+gem "rack-cors"
+gem "sidekiq", "~> 7.3"
+gem "connection_pool", "~> 2.5" # sidekiq 7.3 is incompatible with connection_pool 3.x
+gem "json", "~> 2.10" # json 3.x removed options Rails 8.0 still passes
+gem "faraday", "~> 2.12"
+
+group :development, :test do
+  gem "debug", platforms: %i[ mri windows ], require: "debug/prelude"
+  gem "rspec-rails", "~> 7.1"
+  gem "factory_bot_rails"
+  gem "rubocop-rails-omakase", require: false
+end
+
+group :test do
+  gem "webmock"
+end
