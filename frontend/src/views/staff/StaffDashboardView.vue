@@ -19,7 +19,7 @@ import { cn } from '@/lib/utils'
 
 const REFRESH_INTERVAL_MS = 3000
 
-const staff = useStaffSession()
+const { token, isSignedIn, signOut } = useStaffSession()
 const tokenInput = ref('')
 const date = ref('')
 const summary = ref<ArrivalsSummary>({ total: 0 })
@@ -37,8 +37,8 @@ const stats = computed(() => [
 
 async function load() {
   const [arrivalsResponse, eventsResponse] = await Promise.all([
-    staffApi.arrivals(staff.token.value),
-    staffApi.integrationEvents(staff.token.value),
+    staffApi.arrivals(token.value),
+    staffApi.integrationEvents(token.value),
   ])
   date.value = arrivalsResponse.date
   summary.value = arrivalsResponse.summary
@@ -52,23 +52,23 @@ const polling = usePolling(async () => {
     error.value = ''
   } catch (e) {
     if (e instanceof ApiError && e.status === 401) {
-      staff.signOut()
+      signOut()
       tokenInput.value = ''
     }
     error.value = errorMessage(e)
   }
 }, REFRESH_INTERVAL_MS)
 
-watch(staff.isSignedIn, (signedIn) => (signedIn ? polling.start() : polling.stop()), { immediate: true })
+watch(isSignedIn, (signedIn) => (signedIn ? polling.start() : polling.stop()), { immediate: true })
 
 function signIn() {
-  staff.token.value = tokenInput.value.trim()
+  token.value = tokenInput.value.trim()
 }
 
 async function retry(checkInId: number) {
   retrying.value.add(checkInId)
   try {
-    await staffApi.retryCheckIn(staff.token.value, checkInId)
+    await staffApi.retryCheckIn(token.value, checkInId)
     await load()
   } catch (e) {
     error.value = errorMessage(e)
@@ -81,7 +81,7 @@ const OUTCOME_VARIANTS = { success: 'secondary', transient_failure: 'outline', p
 </script>
 
 <template>
-  <Card v-if="!staff.isSignedIn.value" class="mx-auto w-full max-w-sm">
+  <Card v-if="!isSignedIn" class="mx-auto w-full max-w-sm">
     <CardHeader>
       <CardTitle>Front desk sign in</CardTitle>
       <CardDescription>Use the demo staff token: <code>demo-staff-token</code></CardDescription>
@@ -109,7 +109,7 @@ const OUTCOME_VARIANTS = { success: 'secondary', transient_failure: 'outline', p
           {{ date ? formatDate(date) : '…' }} · refreshes every {{ REFRESH_INTERVAL_MS / 1000 }}s
         </p>
       </div>
-      <Button variant="outline" size="sm" @click="staff.signOut"><LogOutIcon /> Sign out</Button>
+      <Button variant="outline" size="sm" @click="signOut"><LogOutIcon /> Sign out</Button>
     </div>
 
     <Alert v-if="error" variant="destructive">
