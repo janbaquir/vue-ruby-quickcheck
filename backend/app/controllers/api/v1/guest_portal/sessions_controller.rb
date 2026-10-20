@@ -3,6 +3,9 @@ module Api
     module GuestPortal
       class SessionsController < BaseController
         skip_before_action :authenticate_guest!
+        rate_limit to: 10, within: 1.minute, only: :create, with: -> {
+          render_error :too_many_requests, "Too many attempts. Please wait a minute and try again.", status: :too_many_requests
+        }
 
         def create
           reservation = Reservation.includes(:guest, :room, :property).find_for_guest(

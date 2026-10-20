@@ -11,7 +11,7 @@ module Api
           render json: {
             date:,
             summary: summarize(reservations),
-            arrivals: reservations.map { |r| ReservationSerializer.new(r).as_json }
+            arrivals: reservations.map { |r| ReservationSerializer.new(r, staff: true).as_json }
           }
         rescue Date::Error
           render_error :bad_request, "date must be YYYY-MM-DD", status: :bad_request

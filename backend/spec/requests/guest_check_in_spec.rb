@@ -22,6 +22,23 @@ RSpec.describe "Guest check-in", type: :request do
       expect(response).to have_http_status(:not_found)
       expect(response.parsed_body.dig("error", "message")).to eq("We couldn't find a booking with those details.")
     end
+
+    it "rate limits repeated lookups to slow down booking code guessing" do
+      11.times { post "/api/v1/guest/session", params: { confirmation_code: "QC0000", last_name: "Smith" }, as: :json }
+
+      expect(response).to have_http_status(:too_many_requests)
+    end
+  end
+
+  describe "GET /api/v1/guest/reservation" do
+    it "hides internal integration errors from the guest" do
+      create(:check_in, :failed, reservation:)
+
+      get "/api/v1/guest/reservation", headers: auth
+
+      expect(response.parsed_body.dig("reservation", "check_in", "status")).to eq("failed")
+      expect(response.parsed_body.dig("reservation", "check_in")).not_to have_key("last_error")
+    end
   end
 
   describe "POST /api/v1/guest/check_in" do

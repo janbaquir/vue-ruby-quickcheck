@@ -6,7 +6,7 @@ module Api
           check_in = CheckIn.find(params[:id])
           return render_error :conflict, "Only failed check-ins can be retried", status: :conflict unless check_in.retry!
 
-          render json: { reservation: ReservationSerializer.new(check_in.reservation.reload).as_json }, status: :accepted
+          render json: { reservation: ReservationSerializer.new(check_in.reservation.reload, staff: true).as_json }, status: :accepted
         end
       end
     end
