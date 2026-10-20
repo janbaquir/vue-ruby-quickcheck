@@ -19,8 +19,11 @@ today = Time.current.in_time_zone(property.timezone).to_date
   { code: "QC1005", pms: "CXL-88124", room: 305, nights: 2, guest: { first_name: "Liam", last_name: "Brown", nationality: "AU" } }
 ].each do |data|
   reservation = Reservation.find_or_initialize_by(confirmation_code: data[:code])
-  reservation.guest ||= Guest.new(data[:guest])
-  reservation.assign_attributes(
+  guest = reservation.guest || Guest.new
+  guest.update!(data[:guest])
+
+  reservation.update!(
+    guest:,
     property:,
     room: rooms.fetch(data[:room]),
     pms_reservation_id: data[:pms],
@@ -28,7 +31,6 @@ today = Time.current.in_time_zone(property.timezone).to_date
     departure_date: today + data[:nights],
     adults: 2
   )
-  reservation.save!
 end
 
 puts "Seeded #{Reservation.count} reservations arriving #{today}"
