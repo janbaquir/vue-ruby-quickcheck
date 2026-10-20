@@ -10,6 +10,7 @@ const WEBHOOK_SECRET = process.env.PMS_WEBHOOK_SECRET || 'dev-webhook-secret'
 const WEBHOOK_URL = process.env.API_WEBHOOK_URL || 'http://api:3000/api/v1/webhooks/pms'
 
 const state = {
+  outage: false,
   failureRate: Number(process.env.FAILURE_RATE ?? 0.3),
   maxLatencyMs: Number(process.env.MAX_LATENCY_MS ?? 800),
 }
@@ -52,6 +53,11 @@ async function unreliable(req, res, name, handler) {
   if (!idempotencyKey) return send(res, 400, { error: 'Idempotency-Key header is required' })
 
   await sleep(Math.random() * state.maxLatencyMs)
+
+  if (state.outage) {
+    log(`[${name}] outage 503 ${idempotencyKey}`)
+    return send(res, 503, { error: 'service unavailable' })
+  }
 
   if (idempotencyStore.has(idempotencyKey)) {
     const stored = idempotencyStore.get(idempotencyKey)
@@ -157,6 +163,7 @@ const server = http.createServer(async (req, res) => {
 
   if (req.method === 'POST' && path === '/__control') {
     const body = (await readJson(req)) || {}
+    if (body.outage !== undefined) state.outage = Boolean(body.outage)
     if (body.failure_rate !== undefined) state.failureRate = Number(body.failure_rate)
     if (body.max_latency_ms !== undefined) state.maxLatencyMs = Number(body.max_latency_ms)
     log('[control]', state)
