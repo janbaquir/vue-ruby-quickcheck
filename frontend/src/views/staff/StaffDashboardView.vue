@@ -118,12 +118,12 @@ const OUTCOME_VARIANTS = { success: 'secondary', transient_failure: 'outline', p
 
     <div class="grid grid-cols-2 gap-4 lg:grid-cols-4">
       <Card v-for="stat in stats" :key="stat.label" size="sm">
-        <CardHeader>
-          <CardDescription>{{ stat.label }}</CardDescription>
-          <CardTitle :class="cn('text-3xl tabular-nums', stat.alert && stat.value > 0 && 'text-destructive')">
+        <CardContent class="grid gap-1">
+          <p class="text-muted-foreground">{{ stat.label }}</p>
+          <p :class="cn('text-3xl font-semibold tabular-nums', stat.alert && stat.value > 0 && 'text-destructive')">
             {{ stat.value }}
-          </CardTitle>
-        </CardHeader>
+          </p>
+        </CardContent>
       </Card>
     </div>
 
