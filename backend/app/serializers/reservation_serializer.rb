@@ -1,6 +1,7 @@
 class ReservationSerializer
-  def initialize(reservation)
+  def initialize(reservation, staff: false)
     @reservation = reservation
+    @staff = staff
   end
 
   def as_json(*)
@@ -40,8 +41,7 @@ class ReservationSerializer
       pms_synced_at: check_in.pms_synced_at,
       key_issued_at: check_in.key_issued_at,
       failed_at: check_in.failed_at,
-      last_error: check_in.last_error,
       digital_key: check_in.digital_key&.as_json(only: %i[access_code valid_from valid_until])
-    }
+    }.tap { |json| json[:last_error] = check_in.last_error if @staff }
   end
 end

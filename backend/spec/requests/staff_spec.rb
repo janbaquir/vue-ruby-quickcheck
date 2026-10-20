@@ -18,6 +18,7 @@ RSpec.describe "Staff API", type: :request do
       expect(response).to have_http_status(:ok)
       expect(response.parsed_body["arrivals"].size).to eq(2)
       expect(response.parsed_body["summary"]).to include("total" => 2, "failed" => 1, "not_started" => 1)
+      expect(response.parsed_body["arrivals"].pluck("check_in").compact.first).to include("last_error" => "pms check_in: HTTP 503")
     end
 
     it "rejects a malformed date" do
