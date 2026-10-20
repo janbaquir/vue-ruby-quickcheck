@@ -17,9 +17,11 @@ docker compose up --build
 
 | URL | What |
 | --- | --- |
-| http://localhost:5173 | Guest check-in |
-| http://localhost:5173/staff | Front-desk dashboard (token `demo-staff-token`) |
+| http://localhost:8080 | Guest check-in |
+| http://localhost:8080/staff | Front-desk dashboard (token `demo-staff-token`) |
 | http://localhost:3000/sidekiq | Sidekiq UI (`staff` / `demo-staff-token`) |
+
+The web app is a production build served by nginx, which also proxies `/api` to Rails. Host ports can be changed in `.env` (see `.env.example`). Postgres, Redis and the mock services are not published, except the mock's control endpoint on `127.0.0.1:4000`.
 
 Seeded bookings all arrive today: `QC1001 Tanaka` (JP), `QC1002 Smith` (GB), `QC1003 Santos` (PH), `QC1004 Kim` (KR), and `QC1005 Brown`, which is cancelled in the PMS and always fails.
 
@@ -72,8 +74,14 @@ pending ──SyncToPmsJob──▶ pms_synced ──IssueDigitalKeyJob──▶
 docker compose exec -e RAILS_ENV=test api bin/rails db:prepare
 docker compose exec -e RAILS_ENV=test api bundle exec rspec
 docker compose exec api bundle exec rubocop
-docker compose exec web npm test
-docker compose exec web npm run build   # includes vue-tsc type-check
+```
+
+```bash
+cd frontend
+npm ci
+npm test
+npm run build   # includes vue-tsc type-check
+npm run dev     # hot reload on :5173, proxies /api to VITE_API_PROXY_TARGET (default http://localhost:3000)
 ```
 
 ## With more time
